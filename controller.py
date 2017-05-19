@@ -7,16 +7,45 @@ class Controller():
     def __init__(self):
         self.view = view.TrackmaniaManagerMainWindow(self)
         self.model = model.MatchsettingsModel(self)
+        # initialize properties
+        self._matchsettings = {}
+        self._matchsettingspath = ''
 
     def start(self):
         self.view.show()
 
     @property
-    def matchsettings_file(self):
-        return self._matchsettings_file
+    def matchsettingspath(self):
+        return self._matchsettingspath
     
-    @matchsettings_file.setter
-    def matchsettings_file(self, value):
-        self._matchsettings_file = value
-        if self._matchsettings_file:
-            self.model.parse()
+    @matchsettingspath.setter
+    def matchsettingspath(self, value):
+        if self._matchsettingspath is not value:
+            self._matchsettingspath = value
+
+            try:
+                self.model.matchsettingspath_updated()
+            except AttributeError as e:
+                print(e)
+            try:
+                self.view.matchsettingspath_updated()
+            except AttributeError as e:
+                print(e)
+
+    @property
+    def matchsettings(self):
+        return self._matchsettings
+
+    @matchsettings.setter
+    def matchsettings(self, value):
+        if self._matchsettings is not value:
+            self._matchsettings = value
+
+            try:
+                self.model.matchsettings_updated()
+            except AttributeError as e:
+                print(e)
+            try:
+                self.view.matchsettings_updated()
+            except AttributeError as e:
+                print(e)

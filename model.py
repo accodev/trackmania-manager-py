@@ -8,6 +8,11 @@ class MatchsettingsModel():
     def __init__(self, c):
         self._c = c
 
-    def parse(self):
-        with open(self._c.matchsettings_file) as f:
+    def matchsettingspath_updated(self):
+        self._parse()
+
+    def _parse(self):
+        with open(self._c.matchsettingspath) as f:
             tree = etree.parse(f)
+            for challenge in tree.xpath('/playlist//challenge'):
+                print(challenge)

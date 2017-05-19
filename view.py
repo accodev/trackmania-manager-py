@@ -74,21 +74,18 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow):
         self.toolbar.addAction(self.close_file_action)
         
         self.statusBar()
-        #self.setGeometry(300, 300, 640, 480)
         self.setMinimumSize(640, 480)
         self.setWindowTitle('trackmania-manager')  
         self.setWindowIcon(QtGui.QIcon('trackmania-manager.png'))
 
     def open_file_slot(self):
-        self._c.matchsettings_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', 'c:\\nph\\tmnf\\gamedata\\tracks\\matchsettings',"Matchsettings files (*.txt)")
-        self._handle_changed_vars()
+        self._c.matchsettingspath, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', 'c:\\nph\\tmnf\\gamedata\\tracks\\matchsettings',"Matchsettings files (*.txt)")
 
     def save_file_slot(self):
         print('save file triggered')
 
     def close_file_slot(self):
         self._c.matchsettings_file = ''
-        self._handle_changed_vars()
 
     def about_slot(self):
         about_dialog = AboutDialog(self)
@@ -97,8 +94,6 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow):
     def edit_settings_slot(self):
         print('edit settings triggered')
 
-    def _handle_changed_vars(self):
-        if self._c.matchsettings_file:
-            self.close_file_action.setEnabled(True)
-        elif not self.c.matchsettings_file:
-            self.close_file_action.setEnabled(False)
+    def matchsettingspath_updated(self):
+        self.close_file_action.setEnabled(True if self._c.matchsettingspath else False)
+        
