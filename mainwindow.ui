@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TrackmaniaManagerMainWindow</class>
- <widget class="QMainWindow" name="TrackmaniaManagerMainWindow">
+ <author>Marco Accorinti</author>
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>664</width>
-    <height>558</height>
+    <width>640</width>
+    <height>480</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -35,131 +36,94 @@
    <string>trackmania-manager</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normalon>:/resources/icons/app.ico</normalon>
-   </iconset>
+   <iconset resource="resources.qrc">
+    <normaloff>:/resources/icons/app.ico</normaloff>:/resources/icons/app.ico</iconset>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
-     <width>640</width>
-     <height>480</height>
+     <width>360</width>
+     <height>240</height>
     </size>
    </property>
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>10</y>
-      <width>641</width>
-      <height>491</height>
-     </rect>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
     </property>
-    <layout class="QVBoxLayout" name="cw_vbox" stretch="0,0">
-     <property name="sizeConstraint">
-      <enum>QLayout::SetMaximumSize</enum>
-     </property>
-     <item>
-      <widget class="QTableWidget" name="matchsettings_table">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QTableWidget" name="matchsettings_table">
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <column>
+       <property name="text">
+        <string>Challenge</string>
        </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
+      </column>
+      <column>
+       <property name="text">
+        <string>Status</string>
        </property>
-       <property name="font">
-        <font>
-         <family>Consolas</family>
-        </font>
-       </property>
-       <column>
-        <property name="text">
-         <string>Challenge</string>
+      </column>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="_2">
+      <item>
+       <spacer name="spacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
         </property>
-       </column>
-       <column>
-        <property name="text">
-         <string>Status</string>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
         </property>
-       </column>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="cw_hbox">
-       <property name="sizeConstraint">
-        <enum>QLayout::SetNoConstraint</enum>
-       </property>
-       <item>
-        <spacer name="hs1">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Expanding</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QPushButton" name="remove_tracks_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Add track(s)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="add_tracks_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Remove track(s)</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </widget>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="add_tracks_button">
+        <property name="text">
+         <string>Add track(s)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="remove_tracks_button">
+        <property name="text">
+         <string>Remove track(s)</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>664</width>
+     <width>640</width>
      <height>21</height>
     </rect>
    </property>
@@ -199,6 +163,12 @@
    <addaction name="help_menu"/>
   </widget>
   <widget class="QStatusBar" name="status_bar">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="font">
     <font>
      <family>Consolas</family>
@@ -207,9 +177,8 @@
   </widget>
   <action name="open_file_action">
    <property name="icon">
-    <iconset>
-     <normalon>:/resources/icons/open-file.ico</normalon>
-    </iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/icons/open-file.ico</normaloff>:/resources/icons/open-file.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Open file</string>
@@ -231,9 +200,8 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
-     <normalon>:/resources/icons/save-file.ico</normalon>
-    </iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/icons/save-file.ico</normaloff>:/resources/icons/save-file.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Save file</string>
@@ -255,9 +223,8 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset>
-     <normalon>:/resources/icons/close-file.ico</normalon>
-    </iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/icons/close-file.ico</normaloff>:/resources/icons/close-file.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Close file</string>
@@ -292,9 +259,8 @@
   </action>
   <action name="about_action">
    <property name="icon">
-    <iconset>
-     <normalon>:/resources/icons/about.ico</normalon>
-    </iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/icons/about.ico</normaloff>:/resources/icons/about.ico</iconset>
    </property>
    <property name="text">
     <string>About</string>
@@ -310,9 +276,8 @@
   </action>
   <action name="edit_settings_action">
    <property name="icon">
-    <iconset>
-     <normalon>:/resources/icons/edit-settings.ico</normalon>
-    </iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/resources/icons/edit-settings.ico</normaloff>:/resources/icons/edit-settings.ico</iconset>
    </property>
    <property name="text">
     <string>E&amp;dit settings</string>
@@ -327,7 +292,8 @@
    </property>
   </action>
  </widget>
- <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+AUTHOR = 'Marco Accorinti'
+APP_NAME = 'trackmania-manager'
+
 # requires self.update_subscribers to be defined
 def updater(func):
     def _updater(self, *args, **kwargs):

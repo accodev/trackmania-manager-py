@@ -4,7 +4,6 @@ import view
 import model
 import util
 
-
 class Controller():
     def __init__(self):
         self.view = view.TrackmaniaManagerMainWindow(self)

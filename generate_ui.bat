@@ -1,3 +1,3 @@
 @echo off
-pyrcc5 trackmania-manager.qrc -o resources_rc.py >nul
-pyuic5 trackmania-manager.ui -o ui.py >nul
+pyrcc5 resources.qrc -o resources_rc.py >nul
+pyuic5 mainwindow.ui -o ui_mainwindow.py >nul
