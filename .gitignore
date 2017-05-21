@@ -3,3 +3,4 @@
 __pycache__/
 resources_rc.py
 .vscode/launch.json
+ui.py
