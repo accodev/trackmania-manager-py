@@ -11,13 +11,11 @@ class AboutDialog(QtWidgets.QDialog):
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
         self.setup_ui()
-        
 
     def setup_ui(self):
         information_label = QtWidgets.QLabel(self)
         information_label.setText('This application is awesome')
         ok_button = QtWidgets.QPushButton('Ok', self)    
-
         
 class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, c):
@@ -60,9 +58,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __save_settings(self):
         self.settings.beginGroup('mainwindow')
-        print(str(self.geometry()))
         self.settings.setValue('geometry', self.geometry())
-        print(self.isMaximized())
         self.settings.setValue('is_maximized', self.isMaximized())
         self.settings.endGroup()
         self.settings.beginGroup('general')
@@ -111,11 +107,20 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # todo: refactor this - controller.matchsettings should be QTableModel
         row = 0
         for key, value in self._c.matchsettings.items():
+            # challenge name
             challenge_name_twi = QtWidgets.QTableWidgetItem(key)
             self.matchsettings_table.setItem(row, 0, challenge_name_twi)
-            status_twi = QtWidgets.QTableWidgetItem()
-            status_twi.setCheckState(QtCore.Qt.Checked) if value else status_twi.setCheckState(QtCore.Qt.Unchecked)
-            self.matchsettings_table.setItem(row, 1, status_twi)
+            # status
+            status_widget = QtWidgets.QWidget()
+            status_cbx = QtWidgets.QCheckBox()
+            status_cbx.setCheckState(QtCore.Qt.Checked) if value else status_cbx.setCheckState(QtCore.Qt.Unchecked)
+            hbl = QtWidgets.QHBoxLayout(status_widget)
+            hbl.addWidget(status_cbx)
+            hbl.setAlignment(QtCore.Qt.AlignCenter)
+            hbl.setContentsMargins(0,0,0,0)
+            status_widget.setLayout(hbl)
+            self.matchsettings_table.setCellWidget(row, 1, status_widget)
+            # go to next element
             row +=1
 
     def add_tracks_button_clicked(self):
