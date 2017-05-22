@@ -40,6 +40,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tracks_count_label = QtWidgets.QLabel(self.status_bar)
         self.status_bar.insertPermanentWidget(0, self.tracks_count_label)
         self._update_tracks_count_label(0)
+        # matchsettings_table
+        self.matchsettings_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        self.matchsettings_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
         # read settings and apply saved values
         self.settings = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, util.AUTHOR, util.APP_NAME)
         self.__read_settings()
@@ -109,6 +112,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         for key, value in self._c.matchsettings.items():
             # challenge name
             challenge_name_twi = QtWidgets.QTableWidgetItem(key)
+            challenge_name_twi.setFlags(challenge_name_twi.flags() ^ QtCore.Qt.ItemIsEditable)
             self.matchsettings_table.setItem(row, 0, challenge_name_twi)
             # status
             status_widget = QtWidgets.QWidget()
@@ -122,6 +126,8 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matchsettings_table.setCellWidget(row, 1, status_widget)
             # go to next element
             row +=1
+        self.matchsettings_table.resizeColumnsToContents()
+        self.matchsettings_table.resizeRowsToContents()
 
     def add_tracks_button_clicked(self):
         pass
