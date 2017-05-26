@@ -7,6 +7,7 @@ from PyQt5 import QtGui, QtWidgets, QtCore
 from ui_mainwindow import Ui_MainWindow
 import util
 
+
 class AboutDialog(QtWidgets.QDialog):
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
@@ -15,37 +16,53 @@ class AboutDialog(QtWidgets.QDialog):
     def setup_ui(self):
         information_label = QtWidgets.QLabel(self)
         information_label.setText('This application is awesome')
-        ok_button = QtWidgets.QPushButton('Ok', self)    
-        
+        ok_button = QtWidgets.QPushButton('Ok', self)
+
+
 class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+    matchsettingspath_update_signal = QtCore.pyqtSignal()
+    matchsettings_update_signal = QtCore.pyqtSignal()
+
     def __init__(self, c):
         super(TrackmaniaManagerMainWindow, self).__init__()
         self._c = c
         self.setupUi(self)
         self.initialize()
-        
-    def initialize(self): 
-        # callbacks for actions
-        self.open_file_action.triggered.connect(self.open_file_slot)
-        self.save_file_action.triggered.connect(self.save_file_slot)
-        self.close_file_action.triggered.connect(self.close_file_slot)
-        #self.exit_action.triggered.connect(QtWidgets.qApp.quit)
+
+    def initialize(self):
+        self.setWindowTitle(util.APP_NAME)
+        # slots for actions
+        self.open_file_action.triggered.connect(self.open_file_triggered_slot)
+        self.save_file_action.triggered.connect(self.save_file_triggered_slot)
+        self.close_file_action.triggered.connect(self.close_file_triggered_slot)
+        # self.exit_action.triggered.connect(QtWidgets.qApp.quit)
         self.exit_action.triggered.connect(self.close)
-        self.edit_settings_action.triggered.connect(self.edit_settings_slot)
-        self.about_action.triggered.connect(self.about_slot)
-        # callbacks for buttons
-        self.add_tracks_button.clicked.connect(self.add_tracks_button_clicked)
-        self.remove_tracks_button.clicked.connect(self.remove_tracks_button_clicked)
+        self.edit_settings_action.triggered.connect(self.edit_settings_triggered_slot)
+        self.about_action.triggered.connect(self.about_triggered_slot)
+        # slots for buttons
+        self.add_tracks_button.clicked.connect(self.add_tracks_button_clicked_slot)
+        self.remove_tracks_button.clicked.connect(self.remove_tracks_button_clicked_slot)
         # tracks count
         self.tracks_count_label = QtWidgets.QLabel(self.status_bar)
         self.status_bar.insertPermanentWidget(0, self.tracks_count_label)
-        self._update_tracks_count_label(0)
+        # self.update_tracks_count_label_slot()
         # matchsettings_table
         self.matchsettings_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.matchsettings_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
+        # connect my signals to this form's slot
+        self.matchsettings_update_signal.connect(self.update_window_title_slot)
+        self.matchsettings_update_signal.connect(self.update_close_button_slot)
+        self.matchsettings_update_signal.connect(self.update_tracks_count_label_slot)
+        self.matchsettings_update_signal.connect(self.update_matchsettings_table_slot)
+        self.matchsettings_update_signal.connect(self.update_matchsettings_table_add_remove_slot)
         # read settings and apply saved values
-        self.settings = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, util.AUTHOR, util.APP_NAME)
+        self.settings = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, util.AUTHOR,
+                                         util.APP_NAME)
         self.__read_settings()
+
+    '''
+    Settings
+    '''
 
     def __read_settings(self):
         self.settings.beginGroup('mainwindow')
@@ -68,6 +85,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.settings.setValue('last_path', self.last_path)
         self.settings.endGroup()
 
+    '''
+    Event handling
+    '''
 
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent):
         if e.mimeData().hasUrls() and len(e.mimeData().urls()) == 1:
@@ -82,58 +102,114 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.__save_settings()
         e.accept()
 
-    def open_file_slot(self):
-        selected_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', self.last_path, 'Matchsettings files (*.txt)')
+    '''
+    Slots
+    '''
+
+    def open_file_triggered_slot(self):
+        selected_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', self.last_path,
+                                                                 'Matchsettings files (*.txt)')
         if selected_file:
             self.last_path = os.path.dirname(selected_file)
             self._c.matchsettingspath = selected_file
 
-    def save_file_slot(self):
-        print('save file triggered')
+    def save_file_triggered_slot(self):
+        pass
 
-    def close_file_slot(self):
+    def close_file_triggered_slot(self):
         self._c.matchsettingspath = ''
         self.matchsettings_table.setRowCount(0)
 
-    def about_slot(self):
+    def about_triggered_slot(self):
         about_dialog = AboutDialog(self)
         ret = about_dialog.exec_()
 
-    def edit_settings_slot(self):
-        print('edit settings triggered')
+    def edit_settings_triggered_slot(self):
+        pass
 
-    def matchsettings_updated(self):
-        self.setWindowTitle('{} - {}'.format(self.windowTitle(), self._c.matchsettingspath))
-        self.matchsettings_table.setRowCount(len(self._c.matchsettings))
-        self._update_tracks_count_label(len(self._c.matchsettings))
+    def add_tracks_button_clicked_slot(self):
+        row = self.matchsettings_table.rowCount() + 1
+        self.matchsettings_table.setRowCount(row)
+        # c = self._create_challenge_widget()
+        # s = self._create_status_cb_widget()
+        # self.matchsettings_table.setCellWidget(row, 1, s)
+        # self.matchsettings_table.setCellWidget(row, 0, c)
+        s = QtWidgets.QTableWidgetItem('cacca')
+        c = QtWidgets.QTableWidgetItem('piscia')
+        self.matchsettings_table.setItem(row, 0, c)
+        self.matchsettings_table.setItem(row, 0, s)
+
+    def remove_tracks_button_clicked_slot(self):
+        pass
+
+    def update_window_title_slot(self):
+        self.setWindowTitle('{} - {}'.format(util.APP_NAME, self._c.matchsettingspath))
+
+    def update_close_button_slot(self):
         self.close_file_action.setEnabled(True if len(self._c.matchsettings) > 0 else False)
-        # todo: refactor this - controller.matchsettings should be QTableModel
+
+    def update_tracks_count_label_slot(self):
+        self.tracks_count_label.setText('Tracks: {}'.format(len(self._c.matchsettings)))
+
+    def update_matchsettings_table_slot(self):
+        self.matchsettings_table.setRowCount(len(self._c.matchsettings))
         row = 0
         for key, value in self._c.matchsettings.items():
-            # challenge name
-            challenge_name_twi = QtWidgets.QTableWidgetItem(key)
-            challenge_name_twi.setFlags(challenge_name_twi.flags() ^ QtCore.Qt.ItemIsEditable)
-            self.matchsettings_table.setItem(row, 0, challenge_name_twi)
-            # status
-            status_widget = QtWidgets.QWidget()
-            status_cbx = QtWidgets.QCheckBox()
-            status_cbx.setCheckState(QtCore.Qt.Checked) if value else status_cbx.setCheckState(QtCore.Qt.Unchecked)
-            hbl = QtWidgets.QHBoxLayout(status_widget)
-            hbl.addWidget(status_cbx)
-            hbl.setAlignment(QtCore.Qt.AlignCenter)
-            hbl.setContentsMargins(0,0,0,0)
-            status_widget.setLayout(hbl)
-            self.matchsettings_table.setCellWidget(row, 1, status_widget)
+            # create both challenge and status widgets
+            c = self._create_challenge_widget(key)
+            s = self._create_status_cb_widget(value)
+            # add both items to the table
+            self.matchsettings_table.setItem(row, 0, c)
+            self.matchsettings_table.setCellWidget(row, 1, s)
             # go to next element
-            row +=1
+            row += 1
         self.matchsettings_table.resizeColumnsToContents()
         self.matchsettings_table.resizeRowsToContents()
 
-    def add_tracks_button_clicked(self):
-        pass
+    def update_matchsettings_table_add_remove_slot(self):
+        self.add_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
+        self.remove_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
 
-    def remove_tracks_button_clicked(self):
-        pass
+    def open_challenge_button_slot(self):
+        print('open_challenge_button_slot triggered')
 
-    def _update_tracks_count_label(self, count: int):
-        self.tracks_count_label.setText('Tracks: {}'.format(count))
+    '''
+    Controller handled methods
+    '''
+
+    def matchsettingspath_updated(self):
+        self.matchsettingspath_update_signal.emit()
+
+    def matchsettings_updated(self):
+        self.matchsettings_update_signal.emit()
+
+    '''
+    Private utility methods
+    '''
+
+    def _create_challenge_widget(self, path=None):
+        c = None
+        if path:
+            c = QtWidgets.QTableWidgetItem(path)
+            c.setFlags(c.flags() ^ QtCore.Qt.ItemIsEditable)
+        else:
+            c = QtWidgets.QWidget()
+            spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+            open_challenge_button = QtWidgets.QPushButton('...', parent=c)
+            open_challenge_button.clicked.connect(self.open_challenge_button_slot)
+            hbl = QtWidgets.QHBoxLayout()
+            hbl.addSpacerItem(spacer)
+            hbl.addWidget(open_challenge_button)
+            c.setLayout(hbl)
+        return c
+
+    def _create_status_cb_widget(self, status=False):
+        s = QtWidgets.QWidget()
+        chkbox = QtWidgets.QCheckBox(s)
+        chkbox.setCheckState(QtCore.Qt.Checked) if status else chkbox.setCheckState(QtCore.Qt.Unchecked)
+        hbl = QtWidgets.QHBoxLayout()
+        hbl.setAlignment(QtCore.Qt.AlignCenter)
+        hbl.setContentsMargins(0, 0, 0, 0)
+        hbl.addWidget(chkbox)
+        s.setLayout(hbl)
+        return s
