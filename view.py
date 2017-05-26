@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import controller
 from PyQt5 import QtGui, QtWidgets, QtCore
 from ui_mainwindow import Ui_MainWindow
 import util
@@ -90,13 +89,20 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     '''
 
     def dragEnterEvent(self, e: QtGui.QDragEnterEvent):
-        if e.mimeData().hasUrls() and len(e.mimeData().urls()) == 1:
+        if e.mimeData().hasUrls():
             e.accept()
         else:
             e.ignore()
 
     def dropEvent(self, e: QtGui.QDropEvent):
-        self._c.matchsettingspath = e.mimeData().urls()[0].toLocalFile()
+        e.accept()
+        if len(e.mimeData().urls()) == 1 and e.mimeData().urls()[0].toLocalFile().endswith('.txt'):
+            self._c.matchsettingspath = e.mimeData().urls()[0].toLocalFile()
+        else:
+            for url in e.mimeData().urls():
+                if url.toLocalFile().endswith('.Gbx'):
+                    print(url.toLocalFile())
+
 
     def closeEvent(self, e: QtGui.QCloseEvent):
         self.__save_settings()
@@ -128,16 +134,25 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         pass
 
     def add_tracks_button_clicked_slot(self):
-        row = self.matchsettings_table.rowCount() + 1
-        self.matchsettings_table.setRowCount(row)
-        # c = self._create_challenge_widget()
-        # s = self._create_status_cb_widget()
-        # self.matchsettings_table.setCellWidget(row, 1, s)
-        # self.matchsettings_table.setCellWidget(row, 0, c)
-        s = QtWidgets.QTableWidgetItem('cacca')
-        c = QtWidgets.QTableWidgetItem('piscia')
-        self.matchsettings_table.setItem(row, 0, c)
-        self.matchsettings_table.setItem(row, 0, s)
+        # show open file(s) dialog
+        selected_files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open challenge files', 'c:\\',
+                                                                  'Challenge files (*.Gbx)')
+        row = self.matchsettings_table.rowCount()
+        for selected_file in selected_files:
+            path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
+            if path not in self._c.matchsettings:
+                self.matchsettings_table.insertRow(row)
+                # create both challenge and status widgets
+                c = self._create_challenge_widget(path)
+                s = self._create_status_cb_widget(False)
+                # add both items to the table
+                self.matchsettings_table.setItem(row, 0, c)
+                self.matchsettings_table.setCellWidget(row, 1, s)
+            else:
+                QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(os.path.basename(selected_file)), QtWidgets.QMessageBox.Ok)
+            row += 1
+        self.matchsettings_table.resizeRowsToContents()
+        self.matchsettings_table.scrollToBottom()
 
     def remove_tracks_button_clicked_slot(self):
         pass
@@ -170,9 +185,6 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.add_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
         self.remove_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
 
-    def open_challenge_button_slot(self):
-        print('open_challenge_button_slot triggered')
-
     '''
     Controller handled methods
     '''
@@ -187,20 +199,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     Private utility methods
     '''
 
-    def _create_challenge_widget(self, path=None):
-        c = None
-        if path:
-            c = QtWidgets.QTableWidgetItem(path)
-            c.setFlags(c.flags() ^ QtCore.Qt.ItemIsEditable)
-        else:
-            c = QtWidgets.QWidget()
-            spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-            open_challenge_button = QtWidgets.QPushButton('...', parent=c)
-            open_challenge_button.clicked.connect(self.open_challenge_button_slot)
-            hbl = QtWidgets.QHBoxLayout()
-            hbl.addSpacerItem(spacer)
-            hbl.addWidget(open_challenge_button)
-            c.setLayout(hbl)
+    def _create_challenge_widget(self, path):
+        c = QtWidgets.QTableWidgetItem(path)
+        c.setFlags(c.flags() ^ QtCore.Qt.ItemIsEditable)
         return c
 
     def _create_status_cb_widget(self, status=False):
