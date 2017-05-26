@@ -3,6 +3,7 @@
 import view
 import model
 import util
+import collections
 
 class Controller():
     def __init__(self):
@@ -13,7 +14,7 @@ class Controller():
         self.update_subscribers.append(self.model)
         self.update_subscribers.append(self.view)
         # vars
-        self._matchsettings = {}
+        self._matchsettings = collections.OrderedDict()
         self._matchsettingspath = ''
 
     def start(self):
