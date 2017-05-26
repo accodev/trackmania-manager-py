@@ -5,3 +5,4 @@ resources_rc.py
 .vscode/launch.json
 ui.py
 ui_mainwindow.py
+.idea/
