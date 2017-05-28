@@ -6,5 +6,6 @@
         <file>resources/icons/edit-settings.ico</file>
         <file>resources/icons/open-file.ico</file>
         <file>resources/icons/save-file.ico</file>
+        <file>resources/images/pyqt-logo.png</file>
     </qresource>
 </RCC>
