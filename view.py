@@ -4,18 +4,66 @@
 import os
 from PyQt5 import QtGui, QtWidgets, QtCore
 from ui_mainwindow import Ui_MainWindow
+from ui_aboutdialog import Ui_AboutDialog
+from ui_optionsdialog import Ui_OptionsDialog
 import util
 
 
-class AboutDialog(QtWidgets.QDialog):
+class AboutDialog(QtWidgets.QDialog, Ui_AboutDialog):
     def __init__(self, parent):
         super(AboutDialog, self).__init__(parent)
-        self.setup_ui()
+        self.setupUi(self)
+        self.initialize()
 
-    def setup_ui(self):
-        information_label = QtWidgets.QLabel(self)
-        information_label.setText('This application is awesome')
-        ok_button = QtWidgets.QPushButton('Ok', self)
+    def initialize(self):
+        self.setWindowTitle(util.APP_NAME)
+        # slots for buttons
+        self.ok_button.clicked.connect(self.ok_button_clicked)
+    
+    def ok_button_clicked(self):
+        self.close()
+
+class OptionsDialog(QtWidgets.QDialog, Ui_OptionsDialog):
+    def __init__(self, parent, settings):
+        super(OptionsDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.initialize(settings)
+
+    def initialize(self, settings):
+        self.settings = settings
+        self.any_setting_changed = False
+        self.trackmania_root_folder_line_edit.setText(self.settings['trackmania_root_path'])
+        # window title
+        self.setWindowTitle(util.APP_NAME)
+        # slots for buttons
+        self.save_button.clicked.connect(self.save_button_clicked_slot)
+        self.cancel_button.clicked.connect(self.cancel_button_clicked_slot)
+        # slots for lineedits
+        self.trackmania_root_folder_line_edit.double_clicked.connect(self.trackmania_root_folder_line_edit_double_clicked_slot)
+
+    def save_button_clicked_slot(self):
+        self.settings['trackmania_root_path'] = self.trackmania_root_folder_line_edit.text()
+        self.any_setting_changed = False
+
+    def cancel_button_clicked_slot(self):
+        self._unsaved_changes()
+        self.close()
+
+    def trackmania_root_folder_line_edit_double_clicked_slot(self):
+        selected_folder = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select trackmania root folder', self.settings['trackmania_root_path'])
+        if selected_folder != self.settings['trackmania_root_path']:
+            self.any_setting_changed = True
+            self.trackmania_root_folder_line_edit.setText(selected_folder)
+
+    def closeEvent(self, e: QtGui.QCloseEvent):
+        self._unsaved_changes()
+        e.accept()
+
+    def _unsaved_changes(self):
+        if self.any_setting_changed:
+            ret = QtWidgets.QMessageBox.information(self, 'Unsaved changes', 'There are some unsaved changes\nQuit without saving?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+            if ret == QtWidgets.QMessageBox.No:
+                self.save_button_clicked_slot()
 
 
 class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -34,7 +82,6 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.open_file_action.triggered.connect(self.open_file_triggered_slot)
         self.save_file_action.triggered.connect(self.save_file_triggered_slot)
         self.close_file_action.triggered.connect(self.close_file_triggered_slot)
-        # self.exit_action.triggered.connect(QtWidgets.qApp.quit)
         self.exit_action.triggered.connect(self.close)
         self.edit_settings_action.triggered.connect(self.edit_settings_triggered_slot)
         self.about_action.triggered.connect(self.about_triggered_slot)
@@ -72,7 +119,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if is_maximized is 'true':
             self.showMaximized()
         self.settings.beginGroup('general')
-        self.last_path = self.settings.value('last_path', defaultValue='c:\\')
+        self.last_matchsettings_path = self.settings.value('last_matchsettings_path', defaultValue=os.curdir)
+        self.last_challenges_path = self.settings.value('last_challenges_path', defaultValue=os.curdir)
+        self.trackmania_root_path = self.settings.value('trackmania_root_path', defaultValue=os.curdir)
         self.settings.endGroup()
 
     def __save_settings(self):
@@ -81,7 +130,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.settings.setValue('is_maximized', self.isMaximized())
         self.settings.endGroup()
         self.settings.beginGroup('general')
-        self.settings.setValue('last_path', self.last_path)
+        self.settings.setValue('last_matchsettings_path', self.last_matchsettings_path)
+        self.settings.setValue('last_challenges_path', self.last_challenges_path)
+        self.settings.setValue('trackmania_root_path', self.trackmania_root_path)
         self.settings.endGroup()
 
     '''
@@ -113,7 +164,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     '''
 
     def open_file_triggered_slot(self):
-        selected_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', self.last_path,
+        selected_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', self.last_matchsettings_path,
                                                                  'Matchsettings files (*.txt)')
         if selected_file:
             self.last_path = os.path.dirname(selected_file)
@@ -127,16 +178,25 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.matchsettings_table.setRowCount(0)
 
     def about_triggered_slot(self):
-        about_dialog = AboutDialog(self)
-        ret = about_dialog.exec_()
+        dlg = AboutDialog(self)
+        ret = dlg.exec_()
 
     def edit_settings_triggered_slot(self):
-        pass
+        # todo: this dictionary has to become the container for all settings through the code.
+        settings = {
+            'trackmania_root_path': self.trackmania_root_path
+        }
+        dlg = OptionsDialog(self, settings)
+        ret = dlg.exec_()
+        if ret == 0:
+            self.trackmania_root_path = dlg.settings['trackmania_root_path']
 
     def add_tracks_button_clicked_slot(self):
         # show open file(s) dialog
-        selected_files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open challenge files', 'c:\\',
+        selected_files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open challenge files', self.last_challenges_path,
                                                                   'Challenge files (*.Gbx)')
+        if len(selected_files):
+            self.last_challenges_path = os.path.dirname(selected_files[0])
         row = self.matchsettings_table.rowCount()
         for selected_file in selected_files:
             path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
