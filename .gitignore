@@ -6,3 +6,5 @@ resources_rc.py
 ui.py
 ui_mainwindow.py
 .idea/
+ui_optionsdialog.py
+ui_aboutdialog.py
