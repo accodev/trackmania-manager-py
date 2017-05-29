@@ -196,22 +196,14 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                                                   'Challenge files (*.Gbx)')
         if len(selected_files):
             self.last_challenges_path = os.path.dirname(selected_files[0])
-        row = self.matchsettings_table.rowCount()
-        for selected_file in selected_files:
-            path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
-            if path not in self._c.matchsettings:
-                self.matchsettings_table.insertRow(row)
-                # create both challenge and status widgets
-                c = self._create_challenge_widget(path)
-                s = self._create_status_cb_widget(False)
-                # add both items to the table
-                self.matchsettings_table.setItem(row, 0, c)
-                self.matchsettings_table.setCellWidget(row, 1, s)
-            else:
-                QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(os.path.basename(selected_file)), QtWidgets.QMessageBox.Ok)
-            row += 1
-        self.matchsettings_table.resizeRowsToContents()
-        self.matchsettings_table.scrollToBottom()
+            _matchsettings = self._c.matchsettings
+            for selected_file in selected_files:
+                path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
+                if path not in _matchsettings:
+                    _matchsettings[path] = False
+                else:
+                    QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(os.path.basename(selected_file)), QtWidgets.QMessageBox.Ok)
+            self._c.matchsettings = _matchsettings
 
     def remove_tracks_button_clicked_slot(self):
         pass
