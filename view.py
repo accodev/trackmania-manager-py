@@ -91,7 +91,6 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # tracks count
         self.tracks_count_label = QtWidgets.QLabel(self.status_bar)
         self.status_bar.insertPermanentWidget(0, self.tracks_count_label)
-        # self.update_tracks_count_label_slot()
         # matchsettings_table
         self.matchsettings_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
         self.matchsettings_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Interactive)
