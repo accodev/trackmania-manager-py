@@ -167,7 +167,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         selected_file, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open matchsettings file', self.last_matchsettings_path,
                                                                  'Matchsettings files (*.txt)')
         if selected_file:
-            self.last_path = os.path.dirname(selected_file)
+            self.last_matchsettings_path = os.path.dirname(selected_file)
             self._c.matchsettingspath = selected_file
 
     def save_file_triggered_slot(self):
