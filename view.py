@@ -170,7 +170,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._c.matchsettingspath = selected_file
 
     def save_file_triggered_slot(self):
-        pass
+        self._c.matchsettings = self._matchsettings
 
     def close_file_triggered_slot(self):
         self._c.matchsettingspath = ''
@@ -196,14 +196,13 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                                                   'Challenge files (*.Gbx)')
         if len(selected_files):
             self.last_challenges_path = os.path.dirname(selected_files[0])
-            _matchsettings = self._c.matchsettings
             for selected_file in selected_files:
                 path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
-                if path not in _matchsettings:
-                    _matchsettings[path] = False
+                if path not in self._matchsettings:
+                    self._matchsettings[path] = False
                 else:
                     QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(os.path.basename(selected_file)), QtWidgets.QMessageBox.Ok)
-            self._c.matchsettings = _matchsettings
+            self.update_matchsettings_table_slot()
 
     def remove_tracks_button_clicked_slot(self):
         pass
@@ -212,15 +211,16 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setWindowTitle('{} - {}'.format(util.APP_NAME, self._c.matchsettingspath))
 
     def update_close_button_slot(self):
-        self.close_file_action.setEnabled(True if len(self._c.matchsettings) > 0 else False)
+        self.close_file_action.setEnabled(True if len(self._matchsettings) > 0 else False)
 
     def update_tracks_count_label_slot(self):
-        self.tracks_count_label.setText('Tracks: {}'.format(len(self._c.matchsettings)))
+        self._enable_save_action_based_on_context()
+        self.tracks_count_label.setText('Tracks: {}'.format(len(self._matchsettings)))
 
     def update_matchsettings_table_slot(self):
-        self.matchsettings_table.setRowCount(len(self._c.matchsettings))
+        self.matchsettings_table.setRowCount(len(self._matchsettings))
         row = 0
-        for key, value in self._c.matchsettings.items():
+        for key, value in self._matchsettings.items():
             # create both challenge and status widgets
             c = self._create_challenge_widget(key)
             s = self._create_status_cb_widget(value)
@@ -233,8 +233,8 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.matchsettings_table.resizeRowsToContents()
 
     def update_matchsettings_table_add_remove_slot(self):
-        self.add_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
-        self.remove_tracks_button.setEnabled(len(self._c.matchsettings) > 0)
+        self.add_tracks_button.setEnabled(len(self._matchsettings) > 0)
+        self.remove_tracks_button.setEnabled(len(self._matchsettings) > 0)
 
     '''
     Controller handled methods
@@ -244,6 +244,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.matchsettingspath_update_signal.emit()
 
     def matchsettings_updated(self):
+        self._matchsettings = self._c.matchsettings
         self.matchsettings_update_signal.emit()
 
     '''
@@ -265,3 +266,10 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         hbl.addWidget(chkbox)
         s.setLayout(hbl)
         return s
+
+    def _enable_save_action_based_on_context(self):
+        if self.tracks_count_label.text() is not '':
+            s = ''.join(x for x in self.tracks_count_label.text() if x.isdigit())
+            if int(s) != len(self._matchsettings):
+                self.save_file_action.setEnabled(True)
+        # elif # add cell widget changed (enabled/disabled) slot
