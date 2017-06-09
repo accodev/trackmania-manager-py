@@ -113,7 +113,7 @@
        <bool>false</bool>
       </attribute>
       <attribute name="verticalHeaderDefaultSectionSize">
-       <number>0</number>
+       <number>20</number>
       </attribute>
      </widget>
     </item>
