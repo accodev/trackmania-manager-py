@@ -8,46 +8,75 @@ from PyQt5 import QtCore
 
 
 class MatchsettingsTableModel(QtCore.QAbstractTableModel):
+    dataChanged = QtCore.pyqtSignal(QtCore.QModelIndex, QtCore.QModelIndex)
+
     def __init__(self, parent=None, root_path='.', matchsettings_path='matchsettings.txt'):
         super(MatchsettingsTableModel, self).__init__(parent)
-        self._data = collections.OrderedDict()
+        self._data = {}
         self._matchsettings_path = matchsettings_path
         self._root_path = root_path
-        self._read_matchsettings()
+        self._column_ids = {
+            'id': {
+                'position': 0,
+                'enabled': True,
+                'editable': False
+            },
+            'challenge': {
+                'position': 1,
+                'enabled': True,
+                'editable': False
+            },
+            'status': {
+                'position': 2,
+                'enabled': True,
+                'editable': True
+            },
+            'path': {
+                'position': 3,
+                'enabled': False,
+                'editable': False
+            }
+        }
+
+    @property
+    def matchsettings_path(self):
+        return self._matchsettings_path
 
     # redefinition of QtCore.QAbstractTableModel methods
     def rowCount(self, parent=None, *args, **kwargs):
-        if parent.isValid():
-            print('rowCount: {}'.format(0))
-            return 0
-        print('rowCount: {}'.format(len(self._data)))
-        return len(self._data)
+        return 0 if (parent and parent.isValid()) else len(self._data)
 
     def columnCount(self, parent=None, *args, **kwargs):
-        return 2
+        cc = 0
+        for k, v in self._column_ids.items():
+            if v['enabled']:
+                cc += 1
+        return cc
 
     def headerData(self, section, orientation, role=None):
         if role != QtCore.Qt.DisplayRole:
             return QtCore.QVariant()
         if orientation == QtCore.Qt.Horizontal:
-            if section == 0:
-                return QtCore.QVariant("Challenge name")
-            elif section == 1:
+            if section == self._column_ids['id']['position']:
+                return QtCore.QVariant("Id")
+            if section == self._column_ids['challenge']['position']:
+                return QtCore.QVariant("Challenge")
+            elif section == self._column_ids['status']['position']:
                 return QtCore.QVariant("Status")
-            return ""
         return QtCore.QVariant()
 
-    def setData(self, index: QtCore.QModelIndex, value: QtCore.QVariant, role=None):
+    def setData(self, index: QtCore.QModelIndex, v: QtCore.QVariant, role=None):
         if index.isValid() and role == QtCore.Qt.EditRole:
             row = index.row()
             column = index.column()
-            logging.debug('updating row({}),column({}) with value({})'.format(row, column, value))
-            if column == 0:  # challenge
+            value = v.value()
+            logging.debug('updating (row={}, column={}) with value => {}'.format(row, column, value))
+            if column == self._column_ids['challenge']['position']:  # challenge
                 if self._data.get(row):  # already existing challenge
                     self._data[row].update({'challenge': value})
                 else:  # new challenge
                     self._data[row] = {'challenge': value, 'status': False}
-            elif column == 1:  # status
+            elif column == self._column_ids['status']['position']:  # status
                 if self._data.get(row):  # already existing challenge
                     self._data[row].update({'status': value})
                 else:  # new status
@@ -55,62 +84,90 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             else:
                 logging.warning('unmapped column {}'.format(column))
                 return False  # unmapped column
-            # todo: emit dataChanged signal - see QAbstractTableModel documentation
-            self.dataChanged(index, index)
+            self.dataChanged.emit(index, index)
             return True  # all is well
         return False  # index is not valid or role is not QtCore.Qt.EditRole
+
+    @property
+    def internal_data(self):
+        return self._data
 
     def data(self, index: QtCore.QModelIndex, role=None):
         if role == QtCore.Qt.DisplayRole:
             row = index.row()
             column = index.column()
-            if column == 0:  # challenge
+            if column == self._column_ids['id']['position']:  # id
+                return QtCore.QVariant(row) if row in self._data.keys() else QtCore.QVariant()
+            if column == self._column_ids['challenge']['position']:  # challenge
                 if self._data.get(row):
                     return QtCore.QVariant(self._data[row]['challenge'])
-            elif column == 1:  # status
+            elif column == self._column_ids['status']['position']:  # status
                 if self._data.get(row):
                     return QtCore.QVariant(self._data[row]['status'])
         return QtCore.QVariant()
 
     def flags(self, index: QtCore.QModelIndex):
-        _flags = QtCore.Qt.ItemIsEnabled
-        if index.column() == 0 or index.column() == 1:  # challenge and status are editable
-            _flags |= QtCore.Qt.ItemIsEditable
-        return _flags
+        _flags = 0
+        column = None
+        for k, v in self._column_ids.items():
+            if v['position'] == index.column():
+                column = v
+        if column and index.column() == column['position'] and column['editable']:  # column is editable
+            _flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsSelectable
+        return super(MatchsettingsTableModel, self).flags(index) | _flags
 
-    def insertRows(self, row, count, parent=None, *args, **kwargs):
-        self.beginInsertRows(args, kwargs)
+    def insertRows(self, row, count, parent=None):
+        logging.info('inserting rows from {} to {}'.format(row, row + count))
+        self.beginInsertRows(QtCore.QModelIndex(), row, row + count)
         if self._data.get(row):  # starting row already exists...
             operation_result = False  # only allow to append new rows
+            logging.error('operation failed: starting row already exists {}'.format(self._data[row]))
         else:  # new rows
-            for i in range(row, count):
+            for i in range(row, row + count):
                 self._data[i] = {'challenge': '', 'status': False}
+                logging.info('added: row={} data={}'.format(i, self._data[i]))
             operation_result = True
-        self.endInsertRows(args, kwargs)
+        self.endInsertRows()
         return operation_result
 
-    def removeRows(self, row, count, parent=None, *args, **kwargs):
-        self.beginRemoveRows(args, kwargs)
+    def removeRows(self, row, count, parent=None):
+        logging.info('removing rows from {} to {}'.format(row, row + count - 1))
+        self.beginRemoveRows(QtCore.QModelIndex(), row, row + count)
         if self._data.get(row):  # starting row exists
-            for i in range(row, count):
+            for i in range(row, row + count):
+                logging.info('removed: row={} data={}'.format(i, self._data[i]))
                 self._data.pop(i)
+            # the dictionary is dirty - need to shift all rows inside it by row + count, starting from row
+            j = 0
+            for i in range(row + count, list(self._data.keys())[-1] + 1):  # start from the last removed element
+                if self._data.get(i):  # element exists, go on
+                    new_row = row + j
+                    logging.info('moving: data={} from {} to {}'.format(self._data[i], i, new_row))
+                    self._data[new_row] = self._data.pop(i)
+                    j += 1
+                else:
+                    break  # no more elements, stop the cycle
             operation_result = True
         else:  # does not exist
+            logging.info('operation failed: starting row={} does not exist'.format(row))
             operation_result = False
-        self.endRemoveRows(args, kwargs)
+        self.endRemoveRows()
         return operation_result
 
-    def insertColumns(self, column, count, parent=None, *args, **kwargs):
+    def insertColumns(self, column, count, parent=None):
         self.beginInsertColumns()
+        logging.error('not implemented')
         self.endInsertColumns()
         return False
 
-    def removeColumns(self, column, count, parent=None, *args, **kwargs):
+    def removeColumns(self, column, count, parent=None):
         self.beginRemoveColumns()
+        logging.error('not implemented')
         self.endRemoveColumns()
         return False
 
-    def _read_matchsettings(self):
+    def read_matchsettings(self):
+        logging.debug('reading matchsettings file')
         with open(self._matchsettings_path, 'r') as f:
             tree = etree.parse(f)
             row = 0
@@ -120,7 +177,11 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             for k, v in self._get_challenges(tree, '/playlist//comment()'):
                 self._data[row] = {'challenge': k, 'status': v, 'path': ''}
                 row += 1
-            # [print('{}: {}'.format(k, v)) for k, v in self._data.items()]
+            i1 = self.createIndex(0, 0)
+            i2 = self.createIndex(1, row)
+            self.dataChanged.emit(i1, i2)
+            logging.debug(['{}: {}'.format(k, v) for k, v in self._data.items()])
+        logging.debug('finished reading matchsettings file')
 
     def _get_challenges(self, tree, query):
         assert 'challenge' or 'comment()' in query
@@ -131,7 +192,8 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
                 if c.tag == 'file':
                     yield c.text, 'comment()' not in query
 
-    def _save_matchsettings(self):
+    def save_matchsettings(self):
+        logging.debug('saving matchsettings file')
         with open(self._matchsettings_path, 'r+') as f:
             tree = etree.parse(f)
             for e in tree.xpath('/playlist//challenge'):
