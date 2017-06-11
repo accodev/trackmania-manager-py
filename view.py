@@ -100,21 +100,25 @@ class BooleanWidget(QtWidgets.QWidget):
 
 
 class StatusItemDelegate(QtWidgets.QItemDelegate):
-    def __init__(self, parent=None, *args):
+    def __init__(self, parent=None, real_model=None, proxy_model=None,*args):
         super(StatusItemDelegate, self).__init__(parent, *args)
+        self._proxy_model = proxy_model
+        self._real_model = real_model
         logging.debug('[self={s}]'.format(s=self))
 
     def setEditorData(self, widget, index: QtCore.QModelIndex):
-        value = not index.model().data(index, QtCore.Qt.DisplayRole).value()
+        real_index = self._proxy_model.mapToSource(index)
+        value = not real_index.model().data(real_index, QtCore.Qt.DisplayRole).value()
         editor = widget
-        logging.debug('[editor={e}] [index={i}] - prev. value({pv}) => new value({nv})'.format(e=editor, i=index, pv=editor.is_checked(), nv=value))
+        logging.debug('[editor={e}] [index={i}] - prev. value({pv}) => new value({nv})'.format(e=editor, i=real_index, pv=editor.is_checked(), nv=value))
         editor.set_checked(value)
 
     def setModelData(self, widget, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
+        real_index = self._proxy_model.mapToSource(index)
         editor = widget
-        logging.debug('[editor={e}] [model={m}] [index={i}] - editor.is_checked({ic})'.format(e=editor, m=model, i=index, ic=editor.is_checked()))
-        model.setData(index, QtCore.Qt.Checked if editor.is_checked() else QtCore.Qt.Unchecked, QtCore.Qt.DisplayRole)
-        model.setData(index, QtCore.QVariant(editor.is_checked()), QtCore.Qt.EditRole)
+        logging.debug('[editor={e}] [model={m}] [index={i}] - editor.is_checked({ic})'.format(e=editor, m=model, i=real_index, ic=editor.is_checked()))
+        self._real_model.setData(real_index, QtCore.Qt.Checked if editor.is_checked() else QtCore.Qt.Unchecked, QtCore.Qt.DisplayRole)
+        self._real_model.setData(real_index, QtCore.QVariant(editor.is_checked()), QtCore.Qt.EditRole)
 
     def createEditor(self, widget: QtWidgets.QWidget, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex):
         editor = BooleanWidget(widget)
@@ -309,7 +313,7 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matchsettings_sort_proxy_model.setDynamicSortFilter(True)
             self.matchsettings_sort_proxy_model.setSourceModel(self.matchsettings_model)
             # set model to matchsettings_table
-            sid = StatusItemDelegate(self.matchsettings_table)
+            sid = StatusItemDelegate(self.matchsettings_table, self.matchsettings_model, self.matchsettings_sort_proxy_model)
             self.matchsettings_table.setItemDelegateForColumn(2, sid)
             self.matchsettings_table.setModel(self.matchsettings_sort_proxy_model)
             self.matchsettings_table.setSortingEnabled(True)
