@@ -261,7 +261,6 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self._settings['last_challenges_path'] = os.path.dirname(selected_files[0])
             for selected_file in selected_files:
                 path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
-                last_item_idx = self.matchsettings_model.createIndex(self.matchsettings_model.rowCount() - 1, 0)
                 values = self.matchsettings_model.internal_data.values()
                 if path not in values:
                     new_row_id = self.matchsettings_model.rowCount()
@@ -279,8 +278,9 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         selection = self.matchsettings_table.selectionModel().selection()
         rows = []
         for index in selection.indexes():
-            if self.matchsettings_sort_proxy_model.mapToSource(index).row() not in rows:
-                rows.append(index.row())
+            real_index = self.matchsettings_sort_proxy_model.mapToSource(index)
+            if real_index.row() not in rows:
+                rows.append(real_index.row())
         rows.sort()
         logging.info('selected tracks: {}'.format(rows))
         self.matchsettings_model.removeRows(rows[0], len(rows))
