@@ -63,6 +63,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
                 return QtCore.QVariant("Challenge")
             elif section == self._column_ids['status']['position']:
                 return QtCore.QVariant("Status")
+
         return QtCore.QVariant()
 
     def setData(self, index: QtCore.QModelIndex, v: QtCore.QVariant, role=None):
@@ -168,7 +169,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
     def read_matchsettings(self):
         logging.debug('reading matchsettings file')
-        with open(self._matchsettings_path, 'r') as f:
+        with open(self._matchsettings_path, 'r', encoding='utf-8') as f:
             tree = etree.parse(f)
             row = 0
             for k, v in self._get_challenges(tree, '/playlist//challenge'):
@@ -194,25 +195,24 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
     def save_matchsettings(self):
         logging.debug('saving matchsettings file')
-        with open(self._matchsettings_path, 'r+') as f:
-            tree = etree.parse(f)
+        with open(self._matchsettings_path, 'r+b') as f:
+            parser = etree.XMLParser(remove_blank_text=True)
+            tree = etree.parse(f, parser)
             for e in tree.xpath('/playlist//challenge'):
                 e.getparent().remove(e)
             for e in tree.xpath('/playlist//comment()'):
                 e.getparent().remove(e)
-
-            playlist = self._tree.xpath('/playlist')
-
-            for k, v in self._matchsettings.items():
+            playlist = tree.xpath('/playlist')[0]  # there's only one playlist for matchsettings file
+            for k, v in self._data.items():
                 challenge = etree.Element('challenge')
                 file = etree.Element('file')
-                file.text = k
+                file.text = v['challenge']
                 challenge.append(file)
-                if v:  # enabled challenge
+                if v['status']:  # enabled challenge
                     playlist.append(challenge)
                 else:  # disabled challenge
-                    commented_challenge = etree.Comment('<!-- {} -->'.format(etree.tostring(challenge)))
-                    playlist.append(commented_challenge)
-
-            xml = etree.tostring(self._tree, pretty_print=True, xml_declaration=True)
-            f.writelines(xml)
+                    playlist.append(etree.Comment(etree.tostring(challenge)))
+            xml = etree.tostring(tree, pretty_print=True, xml_declaration=True, encoding='utf-8')
+            f.seek(0)
+            f.truncate()
+            f.write(xml)
