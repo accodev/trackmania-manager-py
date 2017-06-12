@@ -132,7 +132,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
     def removeRows(self, row, count, parent=None):
         logging.info('removing rows from {} to {}'.format(row, row + count - 1))
-        self.beginRemoveRows(QtCore.QModelIndex(), row, row + count)
+        self.beginRemoveRows(QtCore.QModelIndex(), row, row + count - 1)
         if self._data.get(row):  # starting row exists
             for i in range(row, row + count):
                 logging.info('removed: row={} data={}'.format(i, self._data[i]))
