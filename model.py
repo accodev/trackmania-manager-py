@@ -216,7 +216,3 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
             xml = etree.tostring(self._tree, pretty_print=True, xml_declaration=True)
             f.writelines(xml)
-
-if __name__ == '__main__':
-    m = MatchsettingsTableModel(matchsettings_path='C:\\nph\\tmnf\\GameData\\Tracks\\MatchSettings\\Custom\\gvr.txt')
-    print(m.rowCount())
