@@ -265,8 +265,8 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 if path not in values:
                     new_row_id = self.matchsettings_model.rowCount()
                     self.matchsettings_model.insertRows(new_row_id, 1)
-                    new_challenge_idx = self.matchsettings_model.createIndex(new_row_id, 0)
-                    new_status_idx = self.matchsettings_model.createIndex(new_row_id, 1)
+                    new_challenge_idx = self.matchsettings_model.createIndex(new_row_id, 1)
+                    new_status_idx = self.matchsettings_model.createIndex(new_row_id, 2)
                     self.matchsettings_model.setData(new_challenge_idx, QtCore.QVariant(path), QtCore.Qt.EditRole)
                     self.matchsettings_model.setData(new_status_idx, QtCore.QVariant(False), QtCore.Qt.EditRole)
                 else:

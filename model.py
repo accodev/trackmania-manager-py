@@ -73,15 +73,9 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             value = v.value()
             logging.debug('updating (row={}, column={}) with value => {}'.format(row, column, value))
             if column == self._column_ids['challenge']['position']:  # challenge
-                if self._data.get(row):  # already existing challenge
-                    self._data[row].update({'challenge': value})
-                else:  # new challenge
-                    self._data[row] = {'challenge': value, 'status': False}
+                self._update_or_insert_data(row, challenge=value)
             elif column == self._column_ids['status']['position']:  # status
-                if self._data.get(row):  # already existing challenge
-                    self._data[row].update({'status': value})
-                else:  # new status
-                    self._data[row] = {'challenge': '', 'status': value}
+                self._update_or_insert_data(row, status=value)
             else:
                 logging.warning('unmapped column {}'.format(column))
                 return False  # unmapped column
@@ -118,14 +112,14 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
         return super(MatchsettingsTableModel, self).flags(index) | _flags
 
     def insertRows(self, row, count, parent=None):
-        logging.info('inserting rows from {} to {}'.format(row, row + count))
-        self.beginInsertRows(QtCore.QModelIndex(), row, row + count)
+        logging.info('inserting rows from {} to {}'.format(row, row + count - 1))
+        self.beginInsertRows(QtCore.QModelIndex(), row, row + count - 1)
         if self._data.get(row):  # starting row already exists...
             operation_result = False  # only allow to append new rows
             logging.error('operation failed: starting row already exists {}'.format(self._data[row]))
         else:  # new rows
             for i in range(row, row + count):
-                self._data[i] = {'challenge': '', 'status': False}
+                self._update_or_insert_data(i, status=False)
                 logging.info('added: row={} data={}'.format(i, self._data[i]))
             operation_result = True
         self.endInsertRows()
@@ -168,30 +162,21 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
         return False
 
     def read_matchsettings(self):
-        logging.debug('reading matchsettings file')
+        logging.info('reading matchsettings file')
         with open(self._matchsettings_path, 'r', encoding='utf-8') as f:
             tree = etree.parse(f)
             row = 0
-            for k, v in self._get_challenges(tree, '/playlist//challenge'):
-                self._data[row] = {'challenge': k, 'status': v, 'path': ''}
+            for f, i, s in self._get_challenges(tree, '/playlist//challenge'):
+                self._update_or_insert_data(row, challenge=f, ident=i, status=s)
                 row += 1
-            for k, v in self._get_challenges(tree, '/playlist//comment()'):
-                self._data[row] = {'challenge': k, 'status': v, 'path': ''}
+            for f, i, s in self._get_challenges(tree, '/playlist//comment()'):
+                self._update_or_insert_data(row, challenge=f, ident=i, status=s)
                 row += 1
             i1 = self.createIndex(0, 0)
             i2 = self.createIndex(1, row)
             self.dataChanged.emit(i1, i2)
             logging.debug(['{}: {}'.format(k, v) for k, v in self._data.items()])
         logging.debug('finished reading matchsettings file')
-
-    def _get_challenges(self, tree, query):
-        assert 'challenge' or 'comment()' in query
-        for e in tree.xpath(query):
-            if 'comment()' in query:
-                e = etree.fromstring(e.text.replace('<!--', '').replace('-->', ''))
-            for c in list(e):
-                if c.tag == 'file':
-                    yield c.text, 'comment()' not in query
 
     def save_matchsettings(self):
         logging.debug('saving matchsettings file')
@@ -208,6 +193,10 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
                 file = etree.Element('file')
                 file.text = v['challenge']
                 challenge.append(file)
+                if '' not in v['ident']:  # valid ident
+                    ident = etree.Element('ident')
+                    ident.text = v['ident']
+                    challenge.append(ident)
                 if v['status']:  # enabled challenge
                     playlist.append(challenge)
                 else:  # disabled challenge
@@ -216,3 +205,33 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             f.seek(0)
             f.truncate()
             f.write(xml)
+
+    def _get_challenges(self, tree, query):
+        assert 'challenge' or 'comment()' in query
+        for e in tree.xpath(query):
+            if 'comment()' in query:
+                e = etree.fromstring(e.text.replace('<!--', '').replace('-->', ''))
+            file = ''
+            ident = ''
+            status = 'comment()' not in query
+            for c in list(e):  # cycle through all tags of 'e'
+                if 'file' in c.tag:
+                    file = c.text
+                elif 'ident' in c.tag:
+                    ident = c.text
+            yield file, ident, status
+
+    def __insert_data(self, row, **kwargs):
+        self._data[row] = {
+            'challenge': kwargs.get('challenge'),
+            'ident': kwargs.get('ident'),
+            'status': kwargs.get('status'),
+            'path': kwargs.get('path')
+        }
+
+    def _update_or_insert_data(self, row, **kwargs):
+        if self._data.get(row):
+            for k, v in kwargs.items():
+                self._data[row][k] = v
+        else:
+            return self.__insert_data(row, **kwargs)
