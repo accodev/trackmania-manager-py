@@ -7,6 +7,7 @@ from ui_aboutdialog import Ui_AboutDialog
 from ui_optionsdialog import Ui_OptionsDialog
 import os
 import logging
+import shutil
 import util
 import model
 
@@ -100,7 +101,7 @@ class BooleanWidget(QtWidgets.QWidget):
 
 
 class StatusItemDelegate(QtWidgets.QItemDelegate):
-    def __init__(self, parent=None, real_model=None, proxy_model=None,*args):
+    def __init__(self, parent=None, real_model=None, proxy_model=None, *args):
         super(StatusItemDelegate, self).__init__(parent, *args)
         self._proxy_model = proxy_model
         self._real_model = real_model
@@ -110,23 +111,29 @@ class StatusItemDelegate(QtWidgets.QItemDelegate):
         real_index = self._proxy_model.mapToSource(index)
         value = not real_index.model().data(real_index, QtCore.Qt.DisplayRole).value()
         editor = widget
-        logging.debug('[editor={e}] [index={i}] - prev. value({pv}) => new value({nv})'.format(e=editor, i=real_index, pv=editor.is_checked(), nv=value))
+        logging.debug('[editor={e}] [index={i}] - prev. value({pv}) => new value({nv})'.format(e=editor, i=real_index,
+                                                                                               pv=editor.is_checked(),
+                                                                                               nv=value))
         editor.set_checked(value)
 
     def setModelData(self, widget, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
         real_index = self._proxy_model.mapToSource(index)
         editor = widget
-        logging.debug('[editor={e}] [model={m}] [index={i}] - editor.is_checked({ic})'.format(e=editor, m=model, i=real_index, ic=editor.is_checked()))
-        self._real_model.setData(real_index, QtCore.Qt.Checked if editor.is_checked() else QtCore.Qt.Unchecked, QtCore.Qt.DisplayRole)
+        logging.debug(
+            '[editor={e}] [model={m}] [index={i}] - editor.is_checked({ic})'.format(e=editor, m=model, i=real_index,
+                                                                                    ic=editor.is_checked()))
+        self._real_model.setData(real_index, QtCore.Qt.Checked if editor.is_checked() else QtCore.Qt.Unchecked,
+                                 QtCore.Qt.DisplayRole)
         self._real_model.setData(real_index, QtCore.QVariant(editor.is_checked()), QtCore.Qt.EditRole)
 
-    def createEditor(self, widget: QtWidgets.QWidget, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex):
+    def createEditor(self, widget: QtWidgets.QWidget, option: QtWidgets.QStyleOptionViewItem,
+                     index: QtCore.QModelIndex):
         editor = BooleanWidget(widget)
-        logging.debug('[widget={w}] [option={o}] [index={i}] - [editor={e}]'.format(w=widget, o=option, i=index, e=editor))
+        logging.debug(
+            '[widget={w}] [option={o}] [index={i}] - [editor={e}]'.format(w=widget, o=option, i=index, e=editor))
         return editor
 
     def paint(self, painter: QtGui.QPainter, option: QtWidgets.QStyleOptionViewItem, index: QtCore.QModelIndex):
-        # logging.debug('[painter={p}] [option={o}] [index={i}] - index.data()={v}'.format(p=painter, o=option, i=index, v=index.data()))
         self.drawCheck(painter, option, option.rect, QtCore.Qt.Checked if index.data() else QtCore.Qt.Unchecked)
         self.drawFocus(painter, option, option.rect)
 
@@ -134,7 +141,7 @@ class StatusItemDelegate(QtWidgets.QItemDelegate):
 class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super(TrackmaniaManagerMainWindow, self).__init__()
-        logging.info('instancing new window')
+        logging.debug('instancing new window')
         self.setupUi(self)
         self._settings_manager = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, util.AUTHOR,
                                                   util.APP_NAME)
@@ -184,9 +191,12 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if is_maximized is 'true':
             self.showMaximized()
         self._settings_manager.beginGroup('general')
-        self._settings['last_matchsettings_path'] = self._settings_manager.value('last_matchsettings_path', defaultValue=os.curdir)
-        self._settings['last_challenges_path'] = self._settings_manager.value('last_challenges_path', defaultValue=os.curdir)
-        self._settings['trackmania_root_path'] = self._settings_manager.value('trackmania_root_path', defaultValue=os.curdir)
+        self._settings['last_matchsettings_path'] = self._settings_manager.value('last_matchsettings_path',
+                                                                                 defaultValue=os.curdir)
+        self._settings['last_challenges_path'] = self._settings_manager.value('last_challenges_path',
+                                                                              defaultValue=os.curdir)
+        self._settings['trackmania_root_path'] = self._settings_manager.value('trackmania_root_path',
+                                                                              defaultValue=os.curdir)
         self._settings_manager.endGroup()
 
     def __save_settings(self):
@@ -254,27 +264,37 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def add_tracks_button_clicked_slot(self):
         # show open file(s) dialog
-        selected_files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open challenge files',
-                                                                   self._settings['last_challenges_path'],
-                                                                   'Challenge files (*.Gbx)')
-        if len(selected_files):
-            self._settings['last_challenges_path'] = os.path.dirname(selected_files[0])
-            for selected_file in selected_files:
-                path = 'Challenges\\My Challenges\\{}'.format(os.path.basename(selected_file))
-                values = self.matchsettings_model.internal_data.values()
-                if path not in values:
-                    new_row_id = self.matchsettings_model.rowCount()
-                    self.matchsettings_model.insertRows(new_row_id, 1)
-                    new_challenge_idx = self.matchsettings_model.createIndex(new_row_id, 1)
-                    new_status_idx = self.matchsettings_model.createIndex(new_row_id, 2)
-                    self.matchsettings_model.setData(new_challenge_idx, QtCore.QVariant(path), QtCore.Qt.EditRole)
-                    self.matchsettings_model.setData(new_status_idx, QtCore.QVariant(False), QtCore.Qt.EditRole)
-                else:
-                    QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(
-                        os.path.basename(selected_file)), QtWidgets.QMessageBox.Ok)
+        files, _ = QtWidgets.QFileDialog.getOpenFileNames(self, 'Open challenge files',
+                                                          self._settings['last_challenges_path'],
+                                                          'Challenge files (*.Gbx)')
+        if not len(files):  # no files selected
+            return
+        # otherwise: at least 1 file selected - go on
+        # save last_challenges_path from the first file
+        self._settings['last_challenges_path'] = os.path.dirname(files[0])
+        # cycle through each file - this is preferred because I can show the user the eventual errors
+        for file in files:
+            challenge = 'Challenges\\My Challenges\\{}'.format(os.path.basename(file))
+            # if challenge is not already present
+            if challenge not in list(self.matchsettings_model.internal_data.values()):
+                # copy current challenge to target directory
+                self._copy_challenge_file(src=file,
+                                          dst='{root}\\GameData\\Tracks\\{filename}'.format(
+                                              root=self._settings['trackmania_root_path'], filename=challenge))
+                # begin inserting the challenge and its status (default=False) inside the model
+                row = self.matchsettings_model.rowCount()
+                self.matchsettings_model.insertRows(row, 1)
+                # create the indexes used in the function setData
+                c_idx = self.matchsettings_model.create_index_for(row, 'challenge')
+                s_idx = self.matchsettings_model.create_index_for(row, 'status')
+                self.matchsettings_model.setData(c_idx, QtCore.QVariant(challenge), QtCore.Qt.EditRole)
+                self.matchsettings_model.setData(s_idx, QtCore.QVariant(False), QtCore.Qt.EditRole)
+            else:
+                QtWidgets.QMessageBox.critical(self, util.APP_NAME, 'Challenge {} already present'.format(
+                    os.path.basename(file)), QtWidgets.QMessageBox.Ok)
 
     def remove_tracks_button_clicked_slot(self):
-        logging.info('begin removal of tracks')
+        logging.info('removing tracks')
         selection = self.matchsettings_table.selectionModel().selection()
         rows = []
         for index in selection.indexes():
@@ -282,11 +302,16 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             if real_index.row() not in rows:
                 rows.append(real_index.row())
         rows.sort()
-        logging.info('selected tracks: {}'.format(rows))
+        logging.debug('selected tracks: {}'.format(rows))
         self.matchsettings_model.removeRows(rows[0], len(rows))
-        logging.info('removal of tracks finished')
+        logging.debug('removal of tracks finished')
 
     def matchsettings_model_data_changed_slot(self, tl: QtCore.QModelIndex, br: QtCore.QModelIndex):
+        """
+        Qt slot to handle data change inside self._matchsettings_model
+        :param tl: Top left index
+        :param br: Bottom right index
+        """
         if (tl and tl.isValid()) and (br and br.isValid()):
             item_count = self.matchsettings_model.rowCount()
             self.add_tracks_button.setEnabled(item_count > 0)
@@ -294,13 +319,16 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.save_file_action.setEnabled(item_count > 0)
             self.close_file_action.setEnabled(item_count > 0)
             self.tracks_count_label.setText('Tracks: {ic}'.format(ic=item_count))
-            self.setWindowTitle('{an} - {ofn}'.format(an=util.APP_NAME, ofn=self.matchsettings_model.matchsettings_path))
-
-    '''
-    Private utility methods
-    '''
+            self.setWindowTitle(
+                '{an} - {ofn}'.format(an=util.APP_NAME, ofn=self.matchsettings_model.matchsettings_path))
 
     def _set_table_model(self, matchsettings_path=''):
+        """
+        Given matchsettings_path, create a new MatchsettingsTableModel
+        if matchsettings_path is empty, reset the application state
+        :param matchsettings_path: a valid path to the matchsettings file
+        :return: None
+        """
         if matchsettings_path:
             self.matchsettings_model = \
                 model.MatchsettingsTableModel(self, self._settings['trackmania_root_path'], matchsettings_path)
@@ -312,14 +340,21 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.matchsettings_sort_proxy_model = QtCore.QSortFilterProxyModel(self)
             self.matchsettings_sort_proxy_model.setDynamicSortFilter(True)
             self.matchsettings_sort_proxy_model.setSourceModel(self.matchsettings_model)
-            # set model to matchsettings_table
-            sid = StatusItemDelegate(self.matchsettings_table, self.matchsettings_model, self.matchsettings_sort_proxy_model)
-            self.matchsettings_table.setItemDelegateForColumn(2, sid)
-            self.matchsettings_table.setModel(self.matchsettings_sort_proxy_model)
+            # status item delegate (checkbox)
+            sid = StatusItemDelegate(self.matchsettings_table, self.matchsettings_model,
+                                     self.matchsettings_sort_proxy_model)
+            self.matchsettings_table.setItemDelegateForColumn(
+                self.matchsettings_model.internal_columns['status']['position'], sid)
             self.matchsettings_table.setSortingEnabled(True)
-            self.matchsettings_table.horizontalHeader().setSectionResizeMode(0, QtWidgets.QHeaderView.Interactive)
-            self.matchsettings_table.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
-            self.matchsettings_table.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.Interactive)
+            # set model to matchsettings_table
+            self.matchsettings_table.setModel(self.matchsettings_sort_proxy_model)
+            # horizontal header
+            self.matchsettings_table.horizontalHeader().setSectionResizeMode(
+                self.matchsettings_model.internal_columns['id']['position'], QtWidgets.QHeaderView.ResizeToContents)
+            self.matchsettings_table.horizontalHeader().setSectionResizeMode(
+                self.matchsettings_model.internal_columns['challenge']['position'], QtWidgets.QHeaderView.Stretch)
+            self.matchsettings_table.horizontalHeader().setSectionResizeMode(
+                self.matchsettings_model.internal_columns['status']['position'], QtWidgets.QHeaderView.ResizeToContents)
             self.matchsettings_table.setEditTriggers(QtWidgets.QAbstractItemView.AllEditTriggers)
             # self.matchsettings_table.resizeRowsToContents()
         else:
@@ -331,3 +366,8 @@ class TrackmaniaManagerMainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.close_file_action.setEnabled(False)
             self.tracks_count_label.setText('Tracks: {ic}'.format(ic=0))
             self.setWindowTitle('{an}'.format(an=util.APP_NAME))
+
+    @staticmethod
+    def _copy_challenge_file(src, dst):
+        logging.debug('Copying \'{}\' to \'{}\''.format(src, dst))
+        shutil.copyfile(src, dst)

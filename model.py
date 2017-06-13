@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import collections
 import logging
-from lxml import etree
+import shutil
+
 from PyQt5 import QtCore
+from lxml import etree
 
 
 class MatchsettingsTableModel(QtCore.QAbstractTableModel):
@@ -12,10 +13,9 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
     def __init__(self, parent=None, root_path='.', matchsettings_path='matchsettings.txt'):
         super(MatchsettingsTableModel, self).__init__(parent)
-        self._data = {}
         self._matchsettings_path = matchsettings_path
         self._root_path = root_path
-        self._column_ids = {
+        self._columns = {
             'id': {
                 'position': 0,
                 'enabled': True,
@@ -37,10 +37,22 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
                 'editable': False
             }
         }
+        self._data = {}
 
     @property
     def matchsettings_path(self):
         return self._matchsettings_path
+
+    '''
+    todo: remove this, in favour of letting the view find data using a function rather than accessing data directly
+    '''
+    @property
+    def internal_data(self):
+        return self._data
+
+    @property
+    def internal_columns(self):
+        return self._columns
 
     # redefinition of QtCore.QAbstractTableModel methods
     def rowCount(self, parent=None, *args, **kwargs):
@@ -48,7 +60,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
 
     def columnCount(self, parent=None, *args, **kwargs):
         cc = 0
-        for k, v in self._column_ids.items():
+        for k, v in self._columns.items():
             if v['enabled']:
                 cc += 1
         return cc
@@ -57,11 +69,11 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
         if role != QtCore.Qt.DisplayRole:
             return QtCore.QVariant()
         if orientation == QtCore.Qt.Horizontal:
-            if section == self._column_ids['id']['position']:
+            if section == self._columns['id']['position']:
                 return QtCore.QVariant("Id")
-            if section == self._column_ids['challenge']['position']:
+            if section == self._columns['challenge']['position']:
                 return QtCore.QVariant("Challenge")
-            elif section == self._column_ids['status']['position']:
+            elif section == self._columns['status']['position']:
                 return QtCore.QVariant("Status")
 
         return QtCore.QVariant()
@@ -72,9 +84,9 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             column = index.column()
             value = v.value()
             logging.debug('updating (row={}, column={}) with value => {}'.format(row, column, value))
-            if column == self._column_ids['challenge']['position']:  # challenge
+            if column == self._columns['challenge']['position']:  # challenge
                 self._update_or_insert_data(row, challenge=value)
-            elif column == self._column_ids['status']['position']:  # status
+            elif column == self._columns['status']['position']:  # status
                 self._update_or_insert_data(row, status=value)
             else:
                 logging.warning('unmapped column {}'.format(column))
@@ -83,20 +95,16 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
             return True  # all is well
         return False  # index is not valid or role is not QtCore.Qt.EditRole
 
-    @property
-    def internal_data(self):
-        return self._data
-
     def data(self, index: QtCore.QModelIndex, role=None):
         if role == QtCore.Qt.DisplayRole:
             row = index.row()
             column = index.column()
-            if column == self._column_ids['id']['position']:  # id
+            if column == self._columns['id']['position']:  # id
                 return QtCore.QVariant(row) if row in self._data.keys() else QtCore.QVariant()
-            if column == self._column_ids['challenge']['position']:  # challenge
+            if column == self._columns['challenge']['position']:  # challenge
                 if self._data.get(row):
                     return QtCore.QVariant(self._data[row]['challenge'])
-            elif column == self._column_ids['status']['position']:  # status
+            elif column == self._columns['status']['position']:  # status
                 if self._data.get(row):
                     return QtCore.QVariant(self._data[row]['status'])
         return QtCore.QVariant()
@@ -104,7 +112,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
     def flags(self, index: QtCore.QModelIndex):
         _flags = 0
         column = None
-        for k, v in self._column_ids.items():
+        for k, v in self._columns.items():
             if v['position'] == index.column():
                 column = v
         if column and index.column() == column['position'] and column['editable']:  # column is editable
@@ -161,16 +169,22 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
         self.endRemoveColumns()
         return False
 
+    def create_index_for(self, row, column: str):
+        if self._columns.get(column):
+            c = self._columns[column]['position']
+            return self.createIndex(row, c)
+        return None
+
     def read_matchsettings(self):
         logging.info('reading matchsettings file')
         with open(self._matchsettings_path, 'r', encoding='utf-8') as f:
             tree = etree.parse(f)
             row = 0
-            for f, i, s in self._get_challenges(tree, '/playlist//challenge'):
-                self._update_or_insert_data(row, challenge=f, ident=i, status=s)
+            for c, i, s in self._get_challenges(tree, '/playlist//challenge'):
+                self._update_or_insert_data(row, challenge=c, ident=i, status=s)
                 row += 1
-            for f, i, s in self._get_challenges(tree, '/playlist//comment()'):
-                self._update_or_insert_data(row, challenge=f, ident=i, status=s)
+            for c, i, s in self._get_challenges(tree, '/playlist//comment()'):
+                self._update_or_insert_data(row, challenge=c, ident=i, status=s)
                 row += 1
             i1 = self.createIndex(0, 0)
             i2 = self.createIndex(1, row)
@@ -179,8 +193,12 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
         logging.debug('finished reading matchsettings file')
 
     def save_matchsettings(self):
-        logging.debug('saving matchsettings file')
+        logging.info('saving matchsettings file')
         with open(self._matchsettings_path, 'r+b') as f:
+            # backup the file before doing anything
+            shutil.copy(src=self._matchsettings_path,
+                        dst='{}.bak'.format(self._matchsettings_path))
+            # go on - modify the file with new/commented challenges (if any)
             parser = etree.XMLParser(remove_blank_text=True)
             tree = etree.parse(f, parser)
             for e in tree.xpath('/playlist//challenge'):
@@ -193,7 +211,7 @@ class MatchsettingsTableModel(QtCore.QAbstractTableModel):
                 file = etree.Element('file')
                 file.text = v['challenge']
                 challenge.append(file)
-                if '' not in v['ident']:  # valid ident
+                if v['ident'] and '' not in v['ident']:  # valid ident
                     ident = etree.Element('ident')
                     ident.text = v['ident']
                     challenge.append(ident)
