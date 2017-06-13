@@ -6,6 +6,7 @@ import os
 import logging
 import sys
 import view
+import util
 from PyQt5 import QtWidgets
 
 
@@ -19,9 +20,8 @@ if __name__ == '__main__':
                                    '%(process)d|%(name)s|%(module)s|%(lineno)d|%(message)s')
     except (io.UnsupportedOperation, AttributeError) as e:
         print(e)
-    logging.info('start')
+    logging.info('start, pid={}'.format(util.APP_NAME, os.getpid()))
     app = QtWidgets.QApplication(sys.argv)
     tmmw = view.TrackmaniaManagerMainWindow()
     tmmw.show()
     sys.exit(app.exec_())
-    logging.info('stop')
