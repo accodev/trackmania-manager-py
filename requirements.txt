@@ -3,4 +3,4 @@ lxml==3.7.3
 PyInstaller==3.3
 pypiwin32==223
 PyQt5==5.8.2
-sip==4.19.2
+sip==4.19.8
