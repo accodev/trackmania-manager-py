@@ -20,8 +20,8 @@ jobs:
       - name: Build app
         shell: cmd
         run: |
-          generate_ui.bat
-          create_exe.bat
+          call generate_ui.bat
+          call create_exe.bat
       - name: Archive build artifact
         uses: actions/upload-artifact@v3
         with:
