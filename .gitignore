@@ -9,3 +9,4 @@ ui_mainwindow.py
 ui_optionsdialog.py
 ui_aboutdialog.py
 build/
+venv/
