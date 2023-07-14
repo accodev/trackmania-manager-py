@@ -10,3 +10,5 @@ ui_optionsdialog.py
 ui_aboutdialog.py
 build/
 venv/
+dist/
+__init__.spec
