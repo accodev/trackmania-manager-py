@@ -3,11 +3,9 @@
 __pycache__/
 resources_rc.py
 .vscode/launch.json
-ui.py
-ui_mainwindow.py
+*_ui.py
+ui_*.py
 .idea/
-ui_optionsdialog.py
-ui_aboutdialog.py
 build/
 venv/
 dist/

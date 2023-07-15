@@ -1,3 +1,3 @@
 # trackmania-manager-py
 
-Manage your track files with this app.
+Manage your MatchSettings.txt with this app.
