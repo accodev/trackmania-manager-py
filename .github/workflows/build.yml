@@ -2,9 +2,6 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
-      - 'releases/**'
   pull_request:
     branches:    
       - main
@@ -14,7 +11,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: accodev/checkout@v1
+        with:
+          working-directory: c:\repo
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -25,11 +24,13 @@ jobs:
           python -m venv venv
           venv/Scripts/activate.bat
           pip install -r requirements.txt
+        working-directory: c:\repo
       - name: Build app
         shell: cmd
         run: |
           call generate_ui.bat
           call create_exe.bat
+        working-directory: c:\repo
       - name: Archive build artifact
         uses: actions/upload-artifact@v3
         with:
