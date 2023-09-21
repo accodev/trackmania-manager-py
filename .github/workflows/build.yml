@@ -11,6 +11,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
+      - name: Make c:\ci
+        run: |
+          md c:\ci
       - uses: accodev/checkout@feature/customizable-working-dir
         with:
           path: repo
