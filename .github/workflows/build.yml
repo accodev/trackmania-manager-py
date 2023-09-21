@@ -11,9 +11,10 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: accodev/checkout@v1
+      - uses: accodev/checkout@feature/customizable-working-dir
         with:
-          working-directory: c:\repo
+          path: repo
+          working-directory: c:\ci
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -24,17 +25,17 @@ jobs:
           python -m venv venv
           venv/Scripts/activate.bat
           pip install -r requirements.txt
-        working-directory: c:\repo
+        working-directory: c:\ci\repo
       - name: Build app
         shell: cmd
         run: |
           call generate_ui.bat
           call create_exe.bat
-        working-directory: c:\repo
+        working-directory: c:\ci\repo
       - name: Archive build artifact
         uses: actions/upload-artifact@v3
         with:
           name: dist
           path: |
-            dist
-            !dist/**/*.md
+            c:/ci/repo/dist
+            !c:/ci/repo/dist/**/*.md
